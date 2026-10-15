@@ -1,0 +1,578 @@
+[
+    {
+        "id": "10042627cf830640",
+        "type": "tab",
+        "label": "Edgecom",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "5037826741a7a260",
+        "type": "mqtt in",
+        "z": "10042627cf830640",
+        "name": "Internal MQTT server",
+        "topic": "application/1/device/+/rx",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "f83bdd7695a33175",
+        "nl": false,
+        "rap": false,
+        "inputs": 0,
+        "x": 120,
+        "y": 140,
+        "wires": [
+            [
+                "f594e563b20598ef",
+                "525235fe5c524860"
+            ]
+        ]
+    },
+    {
+        "id": "f594e563b20598ef",
+        "type": "debug",
+        "z": "10042627cf830640",
+        "name": "debug 4",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 600,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "4567b8db6282a621",
+        "type": "mqtt out",
+        "z": "10042627cf830640",
+        "name": "External MQTT server",
+        "topic": "",
+        "qos": "1",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "b329ec4a18f40353",
+        "x": 980,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "525235fe5c524860",
+        "type": "function",
+        "z": "10042627cf830640",
+        "name": "Extract Data",
+        "func": "// Extract the important info\nvar new_msg = {};\n\n// Convert Base64 to Hex\nvar decodedDataHex = Buffer.from(msg.payload.data, 'base64').toString('hex');\nvar upperdeveui = msg.payload.devEUI.toUpperCase();\nnew_msg.payload = {\n    [upperdeveui]: [\n        {\n            \"ts\": (new Date().getTime())/1000, // Convert time to timestamp (ms)\n            \"values\": {\n                \"data\": decodedDataHex,  // Store as hex string\n                \"rssi\": msg.payload.rxInfo[0].rssi,\n                \"snr\": msg.payload.rxInfo[0].loRaSNR,\n                \"port\": msg.payload.fPort,\n                \"deveui\": upperdeveui,\n            }\n        }\n    ]\n};\nnew_msg.topic =\"v1/gateway/telemetry\";\nreturn new_msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 610,
+        "y": 140,
+        "wires": [
+            [
+                "4567b8db6282a621",
+                "23ba19091630442c"
+            ]
+        ]
+    },
+    {
+        "id": "82c970103ed06eb6",
+        "type": "mqtt in",
+        "z": "10042627cf830640",
+        "name": "External MQTT server",
+        "topic": "v1/devices/me/rpc/request/+",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "b329ec4a18f40353",
+        "nl": false,
+        "rap": false,
+        "inputs": 0,
+        "x": 120,
+        "y": 360,
+        "wires": [
+            [
+                "b9841f47d17611e6",
+                "de525fb6eb254cfe"
+            ]
+        ]
+    },
+    {
+        "id": "3004771512c343db",
+        "type": "mqtt out",
+        "z": "10042627cf830640",
+        "name": "Internal MQTT server",
+        "topic": "",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "f83bdd7695a33175",
+        "x": 980,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "b9841f47d17611e6",
+        "type": "debug",
+        "z": "10042627cf830640",
+        "name": "debug 6",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 380,
+        "y": 460,
+        "wires": []
+    },
+    {
+        "id": "ea5cc1c030bda7a8",
+        "type": "function",
+        "z": "10042627cf830640",
+        "name": "RPC Confirmation",
+        "func": "var confirm_id_array = msg.topic.split(\"/\")\nvar confirm_id = confirm_id_array[confirm_id_array.length - 1 ];\n\n\nvar new_message = {};\nnew_message.payload = {\n    \"status\": \"Recieved the RPC\"\n}\nnew_message.topic = \"v1/devices/me/rpc/response/\" + confirm_id;\nreturn new_message;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 630,
+        "y": 220,
+        "wires": [
+            [
+                "4567b8db6282a621",
+                "b678eebb1f0e7032"
+            ]
+        ]
+    },
+    {
+        "id": "7d16f3a00e34bc8f",
+        "type": "function",
+        "z": "10042627cf830640",
+        "name": "Send downlink",
+        "func": "var new_message= {};\nvar deveui = msg.payload.params.devEUI;\nvar data = msg.payload.params.data;\nvar port = msg.payload.params.port;\n// Convert the hex string data into a byte buffer\nvar rawBytes = Buffer.from(data, 'hex');\n\n// Convert the raw bytes to Base64\nvar base64data = rawBytes.toString('base64');\n\n\nvar payload = {\n    \"data\": base64data,\n    \"fPort\": port,\n    \"devEUI\": deveui,\n    \"confirmed\": true\n};\n\nnew_message.topic = \"application/1/device/\" + deveui + \"/tx\"\nnew_message.payload = payload;\nreturn new_message;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 620,
+        "y": 320,
+        "wires": [
+            [
+                "3004771512c343db",
+                "b678eebb1f0e7032"
+            ]
+        ]
+    },
+    {
+        "id": "0a2e88160d92bb45",
+        "type": "inject",
+        "z": "10042627cf830640",
+        "name": "Loop",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "600",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "60",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 90,
+        "y": 60,
+        "wires": [
+            [
+                "66f7d7a283fd1c77"
+            ]
+        ]
+    },
+    {
+        "id": "66f7d7a283fd1c77",
+        "type": "exec",
+        "z": "10042627cf830640",
+        "command": "echo 'show cellular module info' | /usr/sbin/vtysh ",
+        "addpay": "",
+        "append": "",
+        "useSpawn": "false",
+        "timer": "",
+        "winHide": false,
+        "oldrc": false,
+        "name": "Cell Reception",
+        "x": 380,
+        "y": 60,
+        "wires": [
+            [
+                "d79898863eb16251",
+                "f3f2676df7900d55"
+            ],
+            [],
+            []
+        ]
+    },
+    {
+        "id": "d79898863eb16251",
+        "type": "function",
+        "z": "10042627cf830640",
+        "name": "Send Cell status",
+        "func": "console.log(msg);\nvar new_message = {};\nnew_message.time = Date.now();\n\nvar new_payload = {};\nvar infos = {};\ninfos.values = {};\ninfos.ts = Date.now();\n\nvar payload = msg.payload;\n//node.warn(payload);\n// Extract RSSI (-53dBm)\nvar match = payload.match(/Signal\\s*:\\s*(-?\\d+)dBm/);\nvar value;\nif (match && match[1]) {\n    value = match[1]; // Extracted RSSI value\n} else {\n    value = null; // No match found\n}\ninfos.values.rssi = value;\n\n// Extract Serial Number (sn)\nvar sn_match = payload.match(/sn:([\\w\\d]+)/);\nvar sn;\nif (sn_match && sn_match[1]) {\n    sn = sn_match[1]; // Extracted serial number\n} else {\n    sn = null;\n}\n//infos.values.sn = sn;\n\n// Extract Network Provider\nvar operator_match = payload.match(/Network Provider:\\s*(.+)/);\nvar operator;\nif (operator_match && operator_match[1]) {\n    operator = operator_match[1].trim(); // Extracted network provider\n} else {\n    operator = null;\n}\ninfos.values.operator = operator;\n\n// Extract ICCID\nvar iccid_match = payload.match(/ICCID\\s*:\\s*(\\d+)/);\nvar iccid;\nif (iccid_match && iccid_match[1]) {\n    iccid = iccid_match[1].trim(); // Extracted ICCID\n} else {\n    iccid = null;\n}\n//infos.values.iccid = iccid;\n\n// Extract Network Type\nvar network_match = payload.match(/Network Type\\s*:\\s*(.+)/);\nvar network;\nif (network_match && network_match[1]) {\n    network = network_match[1].trim(); // Extracted Network type\n} else {\n    network = null;\n}\ninfos.values.network = network;\n\nvar gwName =  \"Gateway: \" + sn ;\n\ninfos.values.familyType = \"Milesight\";\ninfos.values.devicetype = \"Gateway\";\n\nnew_message.topic = \"v1/gateway/telemetry\";\nnew_payload[gwName] = [infos];\nnew_message.payload = new_payload;\nreturn new_message;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 600,
+        "y": 60,
+        "wires": [
+            [
+                "cfd82f4d5a95f71f",
+                "4567b8db6282a621"
+            ]
+        ]
+    },
+    {
+        "id": "cfd82f4d5a95f71f",
+        "type": "debug",
+        "z": "10042627cf830640",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 600,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "b678eebb1f0e7032",
+        "type": "debug",
+        "z": "10042627cf830640",
+        "name": "debug 8",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 940,
+        "y": 360,
+        "wires": []
+    },
+    {
+        "id": "66a8154e663f123d",
+        "type": "exec",
+        "z": "10042627cf830640",
+        "command": "reboot",
+        "addpay": "",
+        "append": "",
+        "useSpawn": "false",
+        "timer": "",
+        "winHide": false,
+        "oldrc": false,
+        "name": "Reboot",
+        "x": 600,
+        "y": 360,
+        "wires": [
+            [],
+            [],
+            []
+        ]
+    },
+    {
+        "id": "de525fb6eb254cfe",
+        "type": "switch",
+        "z": "10042627cf830640",
+        "name": "RPC Type",
+        "property": "payload.method",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "reboot",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "addDevice",
+                "vt": "str"
+            },
+            {
+                "t": "nnull"
+            }
+        ],
+        "checkall": "false",
+        "repair": false,
+        "outputs": 3,
+        "x": 390,
+        "y": 360,
+        "wires": [
+            [
+                "66a8154e663f123d",
+                "ea5cc1c030bda7a8"
+            ],
+            [
+                "5861e1bd3122bb50"
+            ],
+            [
+                "7d16f3a00e34bc8f",
+                "ea5cc1c030bda7a8"
+            ]
+        ]
+    },
+    {
+        "id": "5861e1bd3122bb50",
+        "type": "function",
+        "z": "10042627cf830640",
+        "name": "Log In to API",
+        "func": "// Extract device info from original payload (before it's overwritten)\nvar deviceInfo = {};\nif (msg.payload && msg.payload.params) {\n    deviceInfo = msg.payload.params;\n}\n\n// Save device info to msg for later use\nmsg.deviceInfo = deviceInfo;\n\n// Prepare login POST\nmsg.method = \"POST\";\nmsg.url = \"https://127.0.0.1:8080/api/internal/login\";\n\n// Set login credentials\nmsg.payload = {\n    username: \"admin\",\n    password: \"98JF+lUu6bORfE2cAhCnUw==\"  // Use encrypted password if UG65 encryption is enabled\n};\n\n// Allow HTTPS with self-signed cert\nmsg.rejectUnauthorized = false;\n\n// Required headers\nmsg.headers = {\n    \"Content-Type\": \"application/json\"\n};\n\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 610,
+        "y": 420,
+        "wires": [
+            [
+                "0ccb8c59afa75d6b"
+            ]
+        ]
+    },
+    {
+        "id": "0ccb8c59afa75d6b",
+        "type": "http request",
+        "z": "10042627cf830640",
+        "name": "Log In",
+        "method": "use",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "58c90bc41aad8c6f",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 590,
+        "y": 460,
+        "wires": [
+            [
+                "79afac59414e79e8"
+            ]
+        ]
+    },
+    {
+        "id": "79afac59414e79e8",
+        "type": "function",
+        "z": "10042627cf830640",
+        "name": "Add Device",
+        "func": "// Parse payload (it's a string)\nconst response = JSON.parse(msg.payload);\n\n// Construct payload exactly as required\nmsg.payload = {\n    devEUI: msg.deviceInfo.devEUI,\n    name: msg.deviceInfo.devEUI,\n    appKey: msg.deviceInfo.appkey,\n    applicationID: \"1\",\n    skipFCntCheck: true\n};\n\n// Set HTTP method and endpoint\nmsg.method = \"POST\";\nmsg.url = \"https://127.0.0.1:8080/api/urdevices\";\n\n// Include Bearer token from login step\nmsg.headers = {\n    \"Authorization\": \"Bearer \" + response.jwt,\n    \"Content-Type\": \"application/json\"\n};\n\n// Accept self-signed certs\nmsg.rejectUnauthorized = false;\n\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 610,
+        "y": 500,
+        "wires": [
+            [
+                "edd470c0a5fa57f6"
+            ]
+        ]
+    },
+    {
+        "id": "edd470c0a5fa57f6",
+        "type": "http request",
+        "z": "10042627cf830640",
+        "name": "Add Device",
+        "method": "use",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "58c90bc41aad8c6f",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 610,
+        "y": 540,
+        "wires": [
+            [
+                "7862946d4e7a0265"
+            ]
+        ]
+    },
+    {
+        "id": "7862946d4e7a0265",
+        "type": "function",
+        "z": "10042627cf830640",
+        "name": "RPC Confirmation",
+        "func": "var confirm_id_array = msg.topic.split(\"/\")\nvar confirm_id = confirm_id_array[confirm_id_array.length - 1 ];\n\n\nvar new_message = {};\nnew_message.payload = msg.payload;\nnew_message.topic = \"v1/devices/me/rpc/response/\" + confirm_id;\nreturn new_message;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 630,
+        "y": 580,
+        "wires": [
+            [
+                "4567b8db6282a621",
+                "eb3f9b062d69c843"
+            ]
+        ]
+    },
+    {
+        "id": "eb3f9b062d69c843",
+        "type": "debug",
+        "z": "10042627cf830640",
+        "name": "debug 13",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 620,
+        "y": 620,
+        "wires": []
+    },
+    {
+        "id": "6efb536cbff8186e",
+        "type": "comment",
+        "z": "10042627cf830640",
+        "name": "V 3.0.1 Milesight",
+        "info": "Starting V 3.0 all the decoding is done on the thingsboard\n3.0.1:\n    replaced the MQTT ip with URL\n    changed the RPC Ttpe to accept different RPCs",
+        "x": 100,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "23ba19091630442c",
+        "type": "debug",
+        "z": "10042627cf830640",
+        "name": "debug 14",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 980,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "f3f2676df7900d55",
+        "type": "debug",
+        "z": "10042627cf830640",
+        "name": "debug 21",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 600,
+        "y": 20,
+        "wires": []
+    },
+    {
+        "id": "f83bdd7695a33175",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "127.0.0.1",
+        "port": "1883",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "b329ec4a18f40353",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "mqtt-prod.edgecom.io",
+        "port": "1883",
+        "clientid": "<MQTT_CLIENT_ID>",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "180",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "58c90bc41aad8c6f",
+        "type": "tls-config",
+        "name": "",
+        "cert": "",
+        "key": "",
+        "ca": "",
+        "certname": "",
+        "keyname": "",
+        "caname": "",
+        "servername": "",
+        "verifyservercert": false,
+        "alpnprotocol": ""
+    }
+]
