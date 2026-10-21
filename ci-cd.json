@@ -756,69 +756,6 @@
         "wires": []
     },
     {
-        "id": "eb8ef2a2694becde",
-        "type": "inject",
-        "z": "88f56e72fbc4375c",
-        "name": "Loop",
-        "props": [
-            {
-                "p": "payload"
-            }
-        ],
-        "repeat": "600",
-        "crontab": "",
-        "once": true,
-        "onceDelay": "60",
-        "topic": "",
-        "payload": "",
-        "payloadType": "date",
-        "x": 290,
-        "y": 700,
-        "wires": [
-            [
-                "6546887ffc4c8218"
-            ]
-        ]
-    },
-    {
-        "id": "6546887ffc4c8218",
-        "type": "exec",
-        "z": "88f56e72fbc4375c",
-        "command": "ip -o -4 addr show || echo \"no ip cmd\"",
-        "addpay": "",
-        "append": "",
-        "useSpawn": "false",
-        "timer": "",
-        "winHide": false,
-        "oldrc": false,
-        "name": "Cell Reception",
-        "x": 580,
-        "y": 700,
-        "wires": [
-            [
-                "234674033757bca3"
-            ],
-            [],
-            []
-        ]
-    },
-    {
-        "id": "234674033757bca3",
-        "type": "debug",
-        "z": "88f56e72fbc4375c",
-        "name": "debug 22",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "false",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 800,
-        "y": 700,
-        "wires": []
-    },
-    {
         "id": "5ab87ab96f346639",
         "type": "tls-config",
         "name": "",
