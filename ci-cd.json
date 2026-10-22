@@ -4,25 +4,14 @@
         "type": "tab",
         "label": "CI/CD",
         "disabled": false,
-        "info": "Keeps this gateway's flows in sync with the fleet's GitHub repo.\n\nChecks every hour; runs 24 h after the last successful run (not at boot).\nA failed run is retried every hour until one succeeds. \"Run now\" runs immediately\n(also via the Admin API: POST /node-red/inject/4b8d2f6a1c3e5d70).\n\nEach run:\n1. Log in to ThingsBoard, find the asset \"github token\" by name, read its server attributes:\n   github_repo, github_branch, github_token, nr_username, nr_password (kept in memory only)\n2. Log in to the local Node-RED Admin API\n3. Download every .json file in the repo root (one message per file, joined into msg.flows)\n4. Read the deployed flows (GET /flows) and match each GitHub flow by NAME:\n   missing -> install (POST /flow), different -> update (PUT /flow/:id), same -> skip,\n   several flows with the same name -> skip + error\n5. ci-cd.json updates this updater tab itself, always last\n\nSetup: TB_USERNAME / TB_PASSWORD in this tab's env (ThingsBoard tenant admin).",
-        "env": [
-            {
-                "name": "TB_USERNAME",
-                "value": "vturgut@edgecom.ai",
-                "type": "str"
-            },
-            {
-                "name": "TB_PASSWORD",
-                "value": "Edgecom@2026",
-                "type": "str"
-            }
-        ]
+        "info": "Keeps this gateway's flows in sync with the fleet's GitHub repo.\n\nChecks every hour; runs 24 h after the last successful run (not at boot).\nA failed run is retried every hour until one succeeds. \"Run now\" runs immediately\n(also via the Admin API: POST /node-red/inject/4b8d2f6a1c3e5d70).\n\nEach run:\n1. Log in to ThingsBoard, find the asset \"github token\" by name, read its server attributes:\n   github_repo, github_branch, github_token, nr_username, nr_password (kept in memory only)\n2. Log in to the local Node-RED Admin API\n3. Download every .json file in the repo root (one message per file, joined into msg.flows)\n4. Read the deployed flows (GET /flows) and match each GitHub flow by NAME:\n   missing -> install (POST /flow), different -> update (PUT /flow/:id), same -> skip,\n   several flows with the same name -> skip + error\n5. ci-cd.json updates this updater tab itself, always last\n\nThe ThingsBoard login comes from the \"Fleet config\" flow (fleet-config.json), not from this flow.",
+        "env": []
     },
     {
         "id": "7c1e0a5d3b9f4e21",
         "type": "comment",
         "z": "88f56e72fbc4375c",
-        "name": "Hourly check, runs 24 h after last success. ThingsBoard login is in this tab's env",
+        "name": "Hourly check, runs 24 h after last success. ThingsBoard login comes from the Fleet config flow",
         "info": "",
         "x": 370,
         "y": 40,
@@ -111,7 +100,7 @@
         "type": "function",
         "z": "88f56e72fbc4375c",
         "name": "ThingsBoard login",
-        "func": "// ---- ThingsBoard settings ----\nmsg.tb = {\n    url: \"https://tb-staging.edgecomenergy.net\",\n    assetName: \"github token\"     // looked up by name, so the asset can be recreated\n};\n\n// ThingsBoard login (tenant admin), from this tab's env\nconst user = env.get(\"TB_USERNAME\");\nconst pass = env.get(\"TB_PASSWORD\");\nif (!user || !pass || String(user).startsWith(\"<\") || String(pass).startsWith(\"<\")) {\n    node.status({fill:\"red\", shape:\"ring\", text:\"Set TB_USERNAME / TB_PASSWORD\"});\n    node.error(\"Fill in TB_USERNAME and TB_PASSWORD in the CI/CD tab's environment variables\");\n    return null;\n}\n\n// ThingsBoard REST API login: POST /api/auth/login -> { token, refreshToken }\nmsg.method = \"POST\";\nmsg.url = msg.tb.url + \"/api/auth/login\";\nmsg.headers = { \"Content-Type\": \"application/json\" };\nmsg.payload = { username: user, password: pass };\nmsg.requestTimeout = 30000;\nnode.status({fill:\"blue\", shape:\"dot\", text:\"ThingsBoard login\"});\nreturn msg;\n",
+        "func": "// ---- ThingsBoard settings ----\nmsg.tb = {\n    url: \"https://tb-staging.edgecomenergy.net\",\n    assetName: \"github token\"     // looked up by name, so the asset can be recreated\n};\n\n// ThingsBoard login (tenant admin), shared by the \"Fleet config\" flow\nconst login = global.get(\"tb_login\") || {};\nif (!login.username || !login.password) {\n    node.status({fill:\"red\", shape:\"ring\", text:\"No ThingsBoard login\"});\n    node.error('No ThingsBoard login: is the \"Fleet config\" flow installed and deployed?');\n    return null;\n}\n\n// ThingsBoard REST API login: POST /api/auth/login -> { token, refreshToken }\nmsg.method = \"POST\";\nmsg.url = msg.tb.url + \"/api/auth/login\";\nmsg.headers = { \"Content-Type\": \"application/json\" };\nmsg.payload = { username: login.username, password: login.password };\nmsg.requestTimeout = 30000;\nnode.status({fill:\"blue\", shape:\"dot\", text:\"ThingsBoard login\"});\nreturn msg;\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,

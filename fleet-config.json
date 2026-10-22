@@ -1,0 +1,68 @@
+[
+    {
+        "id": "fc0f1e7c0f1e7c01",
+        "type": "tab",
+        "label": "Fleet config",
+        "disabled": false,
+        "info": "Fleet-wide settings used by the CI/CD flow.\n\nTB_USERNAME / TB_PASSWORD: ThingsBoard tenant admin login.\nChange them in this flow (fleet-config.json in GitHub), never in the CI/CD flow.\nRotation order: create the new login first, update this file, wait 24 h, then remove the old login.",
+        "env": [
+            {
+                "name": "TB_USERNAME",
+                "value": "vturgut@edgecom.ai",
+                "type": "str"
+            },
+            {
+                "name": "TB_PASSWORD",
+                "value": "Edgecom@2026",
+                "type": "str"
+            }
+        ]
+    },
+    {
+        "id": "fc0f1e7c0f1e7c04",
+        "type": "comment",
+        "z": "fc0f1e7c0f1e7c01",
+        "name": "ThingsBoard login for the CI/CD flow is in this tab's env (TB_USERNAME, TB_PASSWORD)",
+        "info": "",
+        "x": 330,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "fc0f1e7c0f1e7c02",
+        "type": "inject",
+        "z": "fc0f1e7c0f1e7c01",
+        "name": "On start / deploy",
+        "props": [],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 160,
+        "y": 120,
+        "wires": [
+            [
+                "fc0f1e7c0f1e7c03"
+            ]
+        ]
+    },
+    {
+        "id": "fc0f1e7c0f1e7c03",
+        "type": "function",
+        "z": "fc0f1e7c0f1e7c01",
+        "name": "Share ThingsBoard login",
+        "func": "// Shares this flow's settings with the CI/CD flow (env variables are only visible\n// inside their own tab, so they are copied into a global variable).\n// Runs at every start/deploy of this flow, so a new login from GitHub takes effect right away.\nconst login = { username: env.get(\"TB_USERNAME\"), password: env.get(\"TB_PASSWORD\") };\nif (!login.username || !login.password) {\n    node.status({fill:\"red\", shape:\"ring\", text:\"TB_USERNAME / TB_PASSWORD not set\"});\n    node.error(\"Fill in TB_USERNAME and TB_PASSWORD in the Fleet config tab's environment variables\");\n    return null;\n}\nglobal.set(\"tb_login\", login);\nnode.status({fill:\"green\", shape:\"dot\", text:\"ThingsBoard login shared \" + new Date().toLocaleString()});\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 400,
+        "y": 120,
+        "wires": [
+            []
+        ]
+    }
+]
